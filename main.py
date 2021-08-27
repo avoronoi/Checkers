@@ -32,30 +32,30 @@ opponent = {
 
 
 class Man:
-    def is_opponent(row, col):
+    def is_opponent(self, row, col):
         pass
 
-    def must_capture():
+    def must_capture(self):
         pass
 
-    def can_move(row, col):
+    def can_move(self, row, col):
         pass
 
-    def available_moves():
+    def available_moves(self):
         pass
 
 
 class King:
-    def is_opponent(row, col):
+    def is_opponent(self, row, col):
         pass
 
-    def must_capture():
+    def must_capture(self):
         pass
 
-    def can_move(row, col):
+    def can_move(self, row, col):
         pass
 
-    def available_moves():
+    def available_moves(self):
         pass
 
 
