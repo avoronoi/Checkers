@@ -1,7 +1,3 @@
-# 1 if player at the top is white else 2
-OPPONENT = 2
-
-
 def in_bounds(row, col):
     return row >= 0 and row < len(board) and col >= 0 and col < len(board)
 
@@ -21,7 +17,7 @@ class Piece:
 
 
 class Man(Piece):
-    def can_move_to(self, row_to, col_to):
+    def __can_move_to(self, row_to, col_to):
         """Returns whether a move can be made, no matter if a piece must capture or not.
         """
         if (not in_bounds(row_to, col_to) or not is_empty(row_to, col_to)
@@ -33,27 +29,25 @@ class Man(Piece):
         return self.is_opponent(
             (self.row + row_to) // 2, (self.col + col_to) // 2)
 
-    def must_capture(self):
+    def capturing_moves(self):
+        moves = []
         for x, y in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
-            if self.can_move_to(self.row + x, self.col + y):
-                return True
-        return False
+            if self.__can_move_to(self.row + x, self.col + y):
+                moves.append(self.row + x, self.col + y)
+        return moves
 
     def available_moves(self):
-        directions = (
-            [(-2, -2), (-2, 2), (2, -2), (2, 2)] if self.must_capture()
-            else [(-1, -1), (-1, 1)])
-        return [(self.row + x, self.col + y) for x, y in directions 
-            if self.can_move_to(self.row + x, self.col + y)]
+        moves = self.capturing_moves()
+        if moves:
+            return moves
+        return [(self.row + x, self.col + y) for x, y in [(-1, -1), (-1, 1)] 
+            if self.__can_move_to(self.row + x, self.col + y)]
 
 
 class King(Piece):
-    def can_move_to(self, row_to, col_to):
-        """Returns whether a move can be made, no matter if a piece must capture or not.
+    def __pieces_on_way(self, row_to, col_to):
+        """Returns the number of own and opponent's pieces on the way to destination in the format of tuple.
         """
-        if (not in_bounds(row_to, col_to) or not is_empty(row_to, col_to)
-                or abs(self.row - row_to) != abs(self.col - col_to)):
-            return False
         x = 1 if row_to - self.row > 0 else -1 
         y = 1 if col_to - self.col > 0 else -1
         own_on_way, opps_on_way = 0, 0
@@ -61,13 +55,29 @@ class King(Piece):
                         range(self.col + y, col_to, y)):
             own_on_way += not is_empty(i, j) and not self.is_opponent(i, j)
             opps_on_way += not is_empty(i, j) and self.is_opponent(i, j)
-        return own_on_way == 0 and opps_on_way <= 1
+        return own_on_way, opps_on_way
 
-    def must_capture(self):
-        pass
+    def __same_diagonal(self):
+        cells = []
+        for x, y in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            cur_row = self.row + x
+            cur_col = self.col + y
+            while in_bounds(cur_row, cur_col):
+                cells.append((cur_row, cur_col))
+                cur_row += x
+                cur_col += y
+        return cells
+
+    def capturing_moves(self):
+        return [cell for cell in self.__same_diagonal()
+            if self.__pieces_on_way(*cell) == (0, 1) and is_empty(*cell)]
 
     def available_moves(self):
-        pass
+        moves = self.capturing_moves()
+        if moves:
+            return moves
+        return [cell for cell in self.__same_diagonal()
+            if self.__pieces_on_way(*cell) == (0, 0) and is_empty(*cell)]
 
 
 # 0 - empty, 1 - white man, 2 - black man, 3 - white king, 4 - black king
@@ -81,6 +91,10 @@ board_num = [
     [1, 0, 1, 0, 1, 0, 1, 0],
     [0, 1, 0, 1, 0, 1, 0, 1]
 ]
+
+# 1 if player at the top is white else 2
+OPPONENT = board_num[0][0]
+
 board = []
 for i, row in enumerate(board_num):
     board.append([(None if x == 0 else Man(i, j, x)) for j, x in enumerate(row)])
