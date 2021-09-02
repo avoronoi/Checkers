@@ -71,16 +71,27 @@ class Man(Piece):
 
 class King(Piece):
     def __pieces_on_way(self, row_to, col_to):
-        """Returns the number of own and opponent's pieces on the way to destination in the format of tuple.
+        """Returns the number of own and opponent's pieces on the way to destination in the format of tuple. Returns (-1, -1) if one of the pieces on the way was already captured.
         """
-        x = 1 if row_to - self.row > 0 else -1 
+        x = 1 if row_to - self.row > 0 else -1
         y = 1 if col_to - self.col > 0 else -1
         own_on_way, opps_on_way = 0, 0
         for i, j in zip(range(self.row + x, row_to, x), 
                         range(self.col + y, col_to, y)):
+            if (i, j) in self.captured_pieces:
+                return (-1, -1)
             own_on_way += not is_empty(i, j) and not self.is_opponent(i, j)
             opps_on_way += not is_empty(i, j) and self.is_opponent(i, j)
         return own_on_way, opps_on_way
+
+    def __captured_piece(self, row_to, col_to):
+        x = 1 if row_to - self.row > 0 else -1
+        y = 1 if col_to - self.col > 0 else -1
+        for i, j in zip(range(self.row + x, row_to, x), 
+                        range(self.col + y, col_to, y)):
+            if board[i][j] is not None:
+                return (i, j)
+        return None
 
     def __same_diagonal(self):
         """Returns the list of cells that share the same diagonal with the piece.
@@ -109,7 +120,14 @@ class King(Piece):
     def move_to(self, row_to, col_to):
         """Moves the piece to (row_to, col_to) and returns the coordinate of the captured cell or None if no cell was captured.
         """
-        pass
+        result = self.__captured_piece(row_to, col_to)
+        if result:
+            self.captured_pieces.append(result)
+        
+        board[row_to][col_to] = King(
+            row_to, col_to, self.color, self.captured_pieces)
+        board[self.row][self.col] = None
+        return result
 
 
 def print_board():
@@ -128,45 +146,29 @@ DEBUG = True
 
 # 0 - empty, 1 - white, 2 - black
 board_num = [
-    [2, 0, 2, 0, 2, 0, 2, 0],
     [0, 2, 0, 2, 0, 2, 0, 2],
     [2, 0, 2, 0, 2, 0, 2, 0],
+    [0, 2, 0, 2, 0, 2, 0, 2],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1],
     [1, 0, 1, 0, 1, 0, 1, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1]
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0]
 ]
 
 if DEBUG:
     board_num = [
+        [0, 2, 0, 2, 0, 2, 0, 2],
         [2, 0, 2, 0, 2, 0, 2, 0],
-        [0, 0, 0, 2, 0, 2, 0, 2],
-        [2, 0, 2, 0, 0, 0, 2, 0],
+        [0, 2, 0, 2, 0, 2, 0, 2],
         [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 2, 0, 2, 0, 0, 0],
-        [0, 0, 0, 1, 0, 1, 0, 1],
-        [1, 0, 2, 0, 2, 0, 1, 0],
-        [0, 1, 0, 0, 0, 1, 0, 1]
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0]
     ]
-
-# 1 if player at the top is white else 2
-OPPONENT = board_num[0][0]
 
 board = []
 for i, row in enumerate(board_num):
     board.append([(None if x == 0 else Man(i, j, x)) 
         for j, x in enumerate(row)])
-
-if DEBUG:
-    print(board[5][5].available_moves())
-    print('Move:', board[5][5].move_to(3, 3))
-    print(board[3][3].available_moves())
-    print('Move:', board[3][3].move_to(5, 1))
-    print(board[5][1].available_moves())
-    print('Move:', board[5][1].move_to(7, 3))
-    print(board[7][3].available_moves())
-    print('Move:', board[7][3].move_to(5, 5))
-    print(board[5][5].available_moves())
-
-    print_board()
