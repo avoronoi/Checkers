@@ -1,151 +1,8 @@
-def in_bounds(row, col):
-    return row >= 0 and row < len(board) and col >= 0 and col < len(board)
-
-
-def is_empty(row, col):
-    return board[row][col] is None
-
-
-class Piece:
-    def __init__(self, row, col, color, captured_pieces=None):
-        """Color is 1 for white pieces and 2 for black pieces.
-        """
-        self.row, self.col, self.color = row, col, color
-        self.captured_pieces = [] if captured_pieces is None else captured_pieces
-
-    def is_opponent(self, row, col):
-        return not is_empty(row, col) and self.color != board[row][col].color
-
-
-class Man(Piece):
-    def __can_move_to(self, row_to, col_to):
-        """Returns whether a move can be made, no matter if a piece must capture or not.
-        """
-        if (not in_bounds(row_to, col_to) or not is_empty(row_to, col_to)
-                or abs(self.row - row_to) != abs(self.col - col_to)
-                or abs(self.row - row_to) > 2):
-            return False
-        if abs(self.row - row_to) == 1:
-            return self.row > row_to        
-        captured_cell = ((self.row + row_to) // 2, (self.col + col_to) // 2)
-        return (self.is_opponent(*captured_cell)
-            and captured_cell not in self.captured_pieces)
-
-    def __captured_piece(self, row_to, col_to):
-        if abs(self.row - row_to) == 2:
-            return ((self.row + row_to) // 2, (self.col + col_to) // 2)
-        return None
-
-    def capturing_moves(self):
-        moves = []
-        for x, y in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
-            if self.__can_move_to(self.row + x, self.col + y):
-                moves.append((self.row + x, self.col + y))
-        return moves
-
-    def available_moves(self):
-        moves = self.capturing_moves()
-        if moves:
-            return moves
-        direction = -1 if self.color == 1 else 1
-        return [(self.row + x, self.col + y) for x, y in [(direction, -1), (direction, 1)] 
-            if self.__can_move_to(self.row + x, self.col + y)]
-
-    def move_to(self, row_to, col_to):
-        """Moves the piece to (row_to, col_to) and returns the coordinate of the captured cell or None if no cell was captured.
-        """
-        result = self.__captured_piece(row_to, col_to)
-        if result:
-            self.captured_pieces.append(result)
-        
-        if ((row_to == 0 and self.color == 1)
-                or (row_to == len(board) - 1 and self.color == 2)):
-            board[row_to][col_to] = King(
-                row_to, col_to, self.color, self.captured_pieces)
-        else:
-            board[row_to][col_to] = Man(
-                row_to, col_to, self.color, self.captured_pieces)
-        board[self.row][self.col] = None
-        return result
-
-
-class King(Piece):
-    def __pieces_on_way(self, row_to, col_to):
-        """Returns the number of own and opponent's pieces on the way to destination in the format of tuple. Returns (-1, -1) if one of the pieces on the way was already captured.
-        """
-        x = 1 if row_to - self.row > 0 else -1
-        y = 1 if col_to - self.col > 0 else -1
-        own_on_way, opps_on_way = 0, 0
-        for i, j in zip(range(self.row + x, row_to, x), 
-                        range(self.col + y, col_to, y)):
-            if (i, j) in self.captured_pieces:
-                return (-1, -1)
-            own_on_way += not is_empty(i, j) and not self.is_opponent(i, j)
-            opps_on_way += not is_empty(i, j) and self.is_opponent(i, j)
-        return own_on_way, opps_on_way
-
-    def __captured_piece(self, row_to, col_to):
-        x = 1 if row_to - self.row > 0 else -1
-        y = 1 if col_to - self.col > 0 else -1
-        for i, j in zip(range(self.row + x, row_to, x), 
-                        range(self.col + y, col_to, y)):
-            if board[i][j] is not None:
-                return (i, j)
-        return None
-
-    def __same_diagonal(self):
-        """Returns the list of cells that share the same diagonal with the piece.
-        """
-        cells = []
-        for x, y in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-            cur_row = self.row + x
-            cur_col = self.col + y
-            while in_bounds(cur_row, cur_col):
-                cells.append((cur_row, cur_col))
-                cur_row += x
-                cur_col += y
-        return cells
-
-    def capturing_moves(self):
-        return [cell for cell in self.__same_diagonal()
-            if self.__pieces_on_way(*cell) == (0, 1) and is_empty(*cell)]
-
-    def available_moves(self):
-        moves = self.capturing_moves()
-        if moves:
-            return moves
-        return [cell for cell in self.__same_diagonal()
-            if self.__pieces_on_way(*cell) == (0, 0) and is_empty(*cell)]
-
-    def move_to(self, row_to, col_to):
-        """Moves the piece to (row_to, col_to) and returns the coordinate of the captured cell or None if no cell was captured.
-        """
-        result = self.__captured_piece(row_to, col_to)
-        if result:
-            self.captured_pieces.append(result)
-        
-        board[row_to][col_to] = King(
-            row_to, col_to, self.color, self.captured_pieces)
-        board[self.row][self.col] = None
-        return result
-
-
-def print_board():
-    for row in board:
-        for cell in row:
-            if cell:
-                print((('W' if cell.color == 1 else 'B') + 
-                       ('M' if isinstance(cell, Man) else 'K')), end=' ')
-            else:
-                print('O ', end=' ')
-        print()
-
-
-DEBUG = True
-
+import logic
+import tkinter as tk
 
 # 0 - empty, 1 - white, 2 - black
-board_num = [
+BOARD_NUM = [
     [0, 2, 0, 2, 0, 2, 0, 2],
     [2, 0, 2, 0, 2, 0, 2, 0],
     [0, 2, 0, 2, 0, 2, 0, 2],
@@ -155,20 +12,74 @@ board_num = [
     [0, 1, 0, 1, 0, 1, 0, 1],
     [1, 0, 1, 0, 1, 0, 1, 0]
 ]
+logic.init_board(BOARD_NUM)
 
-if DEBUG:
-    board_num = [
-        [0, 2, 0, 2, 0, 2, 0, 2],
-        [2, 0, 2, 0, 2, 0, 2, 0],
-        [0, 2, 0, 2, 0, 2, 0, 2],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 1, 0, 1, 0],
-        [0, 1, 0, 1, 0, 1, 0, 1],
-        [1, 0, 1, 0, 1, 0, 1, 0]
-    ]
+BOARD_SIZE = len(BOARD_NUM)
+CELL_SIZE = 80
+WHITE_CELL = '#ececd0'
+BLACK_CELL = '#779557'
+WHITE_PIECE = '#f9f9f9'
+BLACK_PIECE = '#595451'
+WHITE_OUTLINE = '#585451'
+BLACK_OUTLINE = '#3a3a31'
+WHITE_CELL_MOVE = '#d6d6bd'
+BLACK_CELL_MOVE = '#69874e'
 
-board = []
-for i, row in enumerate(board_num):
-    board.append([(None if x == 0 else Man(i, j, x)) 
-        for j, x in enumerate(row)])
+selected_moves = []
+
+
+class CnvCell(tk.Canvas):
+    def __init__(self, piece, row, col, **kwargs):
+        super().__init__(**kwargs)
+        self.row, self.col = row, col
+        self.initUI(piece)
+
+    def initUI(self, piece):
+        if piece:
+            self.create_oval(
+                CELL_SIZE * 0.1, CELL_SIZE * 0.1, 
+                CELL_SIZE * 0.9, CELL_SIZE * 0.9,
+                fill=WHITE_PIECE if piece.color == 1 else BLACK_PIECE,
+                outline=WHITE_OUTLINE if piece.color == 1 else BLACK_OUTLINE, width=3)
+        if (self.row, self.col) in selected_moves:
+            self.create_oval(
+                CELL_SIZE * 0.33, CELL_SIZE * 0.33,
+                CELL_SIZE * 0.67, CELL_SIZE * 0.67,
+                fill=(WHITE_CELL_MOVE if (self.row + self.col) % 2 == 0 
+                      else BLACK_CELL_MOVE),
+                outline='')
+
+
+class FrmBoard(tk.Frame):
+    def __init__(self):
+        super().__init__(master=window, width=BOARD_SIZE*CELL_SIZE,
+                         height=BOARD_SIZE*CELL_SIZE)
+        self.pack()
+        self.draw()
+
+    def draw(self):
+        for i in range(BOARD_SIZE):
+            for j in range(BOARD_SIZE):
+                cnv_cell = CnvCell(
+                    logic.board[i][j], i, j, master=self,
+                    width=CELL_SIZE, height=CELL_SIZE, highlightthickness=0,
+                    bg=WHITE_CELL if (i + j) % 2 == 0 else BLACK_CELL)
+                cnv_cell.bind('<Button-1>', cell_click)
+                cnv_cell.place(x=j*CELL_SIZE, y=i*CELL_SIZE)
+
+
+def cell_click(event):
+    row, col = event.widget.row, event.widget.col
+    print('Cell Clicked: ', row, col)
+
+
+def redraw():
+    global frm_board
+    frm_board.destroy()
+    frm_board = FrmBoard()
+
+
+window = tk.Tk()
+frm_board = FrmBoard()
+window.bind('<Key>', lambda _: redraw())
+window.mainloop()
