@@ -46,7 +46,8 @@ class Man(Piece):
                 or abs(self.row - row_to) > 2):
             return False
         if abs(self.row - row_to) == 1:
-            return self.row > row_to        
+            return ((self.color == 1 and self.row > row_to) 
+                    or (self.color == 2 and self.row < row_to))  
         captured_cell = ((self.row + row_to) // 2, (self.col + col_to) // 2)
         return (self.is_opponent(*captured_cell)
                 and captured_cell not in self.captured_pieces)
@@ -64,16 +65,18 @@ class Man(Piece):
         return moves
 
     def available_moves(self):
-        moves = self.capturing_moves()
-        if moves:
-            return moves
+        for row in board:
+            for cell in row:
+                if (cell is not None and cell.color == self.color 
+                        and cell.capturing_moves()):
+                    return self.capturing_moves()
         direction = -1 if self.color == 1 else 1
         return [(self.row + x, self.col + y) 
                 for x, y in [(direction, -1), (direction, 1)]
                 if self.__can_move_to(self.row + x, self.col + y)]
 
     def move_to(self, row_to, col_to):
-        """Moves the piece to (row_to, col_to) and returns the coordinate of the captured cell or None if no cell was captured.
+        """Moves the piece to (row_to, col_to) and returns 1) the coordinate of the captured cell or None if no cell was captured; 2) whether the turn has to be switched after the move.
         """
         result = self.__captured_piece(row_to, col_to)
         if result:
@@ -87,7 +90,10 @@ class Man(Piece):
             board[row_to][col_to] = Man(
                 row_to, col_to, self.color, self.captured_pieces)
         board[self.row][self.col] = None
-        return result
+        if result is None or not board[row_to][col_to].capturing_moves():
+            board[row_to][col_to].captured_pieces = []
+            return result, True
+        return result, False
 
 
 class King(Piece):
@@ -132,14 +138,16 @@ class King(Piece):
             if self.__pieces_on_way(*cell) == (0, 1) and is_empty(*cell)]
 
     def available_moves(self):
-        moves = self.capturing_moves()
-        if moves:
-            return moves
+        for row in board:
+            for cell in row:
+                if (cell is not None and cell.color == self.color 
+                        and cell.capturing_moves()):
+                    return self.capturing_moves()
         return [cell for cell in self.__same_diagonal()
                 if self.__pieces_on_way(*cell) == (0, 0) and is_empty(*cell)]
 
     def move_to(self, row_to, col_to):
-        """Moves the piece to (row_to, col_to) and returns the coordinate of the captured cell or None if no cell was captured.
+        """Moves the piece to (row_to, col_to) and returns 1) the coordinate of the captured cell or None if no cell was captured; 2) whether the turn has to be switched after the move.
         """
         result = self.__captured_piece(row_to, col_to)
         if result:
@@ -148,4 +156,7 @@ class King(Piece):
         board[row_to][col_to] = King(
             row_to, col_to, self.color, self.captured_pieces)
         board[self.row][self.col] = None
-        return result
+        if not board[row_to][col_to].capturing_moves():
+            board[row_to][col_to].captured_pieces = []
+            return result, True
+        return result, False
