@@ -54,8 +54,20 @@ class CnvCell(tk.Canvas):
                 fill=(WHITE_PIECE[captured] if piece.color == 1
                       else BLACK_PIECE[captured]),
                 outline=WHITE_OUTLINE if piece.color == 1 else BLACK_OUTLINE,
-                width=3,
-)
+                width=3)
+            if isinstance(piece, logic.King):
+                self.create_line(
+                    CELL_SIZE * 0.4, CELL_SIZE * 0.3,
+                    CELL_SIZE * 0.4, CELL_SIZE * 0.7,
+                    width=2, fill='red')
+                self.create_line(
+                    CELL_SIZE * 0.4, CELL_SIZE * 0.5,
+                    CELL_SIZE * 0.6, CELL_SIZE * 0.3,
+                    width=2, fill='red')
+                self.create_line(
+                    CELL_SIZE * 0.4, CELL_SIZE * 0.5,
+                    CELL_SIZE * 0.6, CELL_SIZE * 0.7,
+                    width=2, fill='red')
         if (self.row, self.col) in selected_moves:
             self.create_oval(
                 CELL_SIZE * 0.33, CELL_SIZE * 0.33,

@@ -156,7 +156,7 @@ class King(Piece):
         board[row_to][col_to] = King(
             row_to, col_to, self.color, self.captured_pieces)
         board[self.row][self.col] = None
-        if not board[row_to][col_to].capturing_moves():
+        if result is None or not board[row_to][col_to].capturing_moves():
             board[row_to][col_to].captured_pieces = []
             return result, True
         return result, False
