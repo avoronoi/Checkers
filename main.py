@@ -2,6 +2,7 @@ import tkinter as tk
 import logic
 
 
+DEBUG = False
 # 0 - empty, 1 - white, 2 - black
 BOARD_NUM = [
     [0, 2, 0, 2, 0, 2, 0, 2],
@@ -13,11 +14,20 @@ BOARD_NUM = [
     [0, 1, 0, 1, 0, 1, 0, 1],
     [1, 0, 1, 0, 1, 0, 1, 0]
 ]
-logic.init_board(BOARD_NUM)
-
-
+if DEBUG:
+    BOARD_NUM = [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 2, 0, 0],
+        [1, 0, 1, 0, 1, 0, 1, 0],
+        [0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0]
+    ]
 BOARD_SIZE = len(BOARD_NUM)
 CELL_SIZE = 80
+WINDOW_SIZE = BOARD_SIZE * CELL_SIZE
 WHITE_CELL = '#ececd0'
 BLACK_CELL = '#779557'
 SELECTED_CELL = '#Bab867'
@@ -79,8 +89,8 @@ class CnvCell(tk.Canvas):
 
 class FrmBoard(tk.Frame):
     def __init__(self):
-        super().__init__(master=window, width=BOARD_SIZE*CELL_SIZE,
-                         height=BOARD_SIZE*CELL_SIZE)
+        super().__init__(master=window, width=WINDOW_SIZE,
+                         height=WINDOW_SIZE)
         self.pack()
         self.draw()
 
@@ -124,7 +134,6 @@ def move(row_from, col_from, row_to, col_to):
     if captured_piece is not None:
         captured_pieces.append(captured_piece)
         redraw()
-    print(captured_pieces)
     if change_turn:
         for x, y in captured_pieces:
             logic.board[x][y] = None
@@ -145,7 +154,14 @@ def click_cell(event):
     
     if logic.board[row][col] is None:
         if (row, col) in selected_moves:
-            move(selected_cell[0], selected_cell[1], row, col)
+            x, y = selected_cell
+            color = logic.board[x][y].color
+            move(x, y, row, col)
+            if logic.if_won(color):
+                deselect()
+                frm_board.destroy()
+                game_over(color)
+                return
         deselect()
         return
     
@@ -161,6 +177,38 @@ def redraw():
     frm_board = FrmBoard()
 
 
+def init_game():
+    global turn
+    global frm_board
+    turn = 1
+    logic.init_board(BOARD_NUM)
+    if frm_board is None:
+        frm_board = FrmBoard()
+    else:
+        redraw()
+
+
+def game_over(winner):
+    container = tk.Frame(master=window, width=WINDOW_SIZE, height=WINDOW_SIZE)
+    container.pack()
+    greeting = tk.Label(
+        master=container, text=('White' if winner == 1 else 'Black') + ' Won!',
+        fg='white')
+    greeting.config(font=('', 100))
+    greeting.pack()
+    def play_again():
+        container.destroy()
+        init_game()
+    btn_play_again = tk.Button(
+        master=container, text="Play Again", fg='white', command=play_again)
+    btn_play_again.config(font=('', 50))
+    btn_play_again.pack()
+
+
+
 window = tk.Tk()
-frm_board = FrmBoard()
+window.minsize(WINDOW_SIZE, WINDOW_SIZE)
+frm_board = None
+# game_over(1)
+init_game()
 window.mainloop()

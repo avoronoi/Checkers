@@ -14,6 +14,11 @@ def is_empty(row, col):
     return board[row][col] is None
 
 
+def if_won(color):
+    return all(all(cell is None or cell.color == color for cell in row) 
+               for row in board)
+
+
 def print_board():
     for row in board:
         for cell in row:
