@@ -4,7 +4,7 @@ An implementation of Checkers, also known as Draughts, with Python and Tkinter.
 
 ## Installation
 
-In order to play, git clone this repository. Make sure you have installed Python and Tkinter.
+In order to play, git clone this repository and run main.py. Make sure you have installed Python and Tkinter.
 
 ## Rules
 
